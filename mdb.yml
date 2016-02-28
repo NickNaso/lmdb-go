@@ -74,9 +74,11 @@ TRANSLATOR:
     function:
       - {action: replace, from: "_strerror$", to: str_error}
     type: 
-      - {action: replace, from: "_stat$", to: db_stat}
+      - {action: replace, from: "^me_"}
+      - {action: replace, from: "^ms_"}
+      - {action: replace, from: "_stat$", to: stats}
       - {action: replace, from: "_t$"}
-    private: 
+    private:
       - {transform: unexport}
     post-global: 
       - {action: replace, from: _$}
