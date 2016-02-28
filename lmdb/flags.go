@@ -19,3 +19,9 @@ const (
 
 	DefaultFlags EnvFlags = NoTLS
 )
+
+type CopyFlags uint32
+
+const (
+	CompactingCopy CopyFlags = mdb.CpCompact
+)

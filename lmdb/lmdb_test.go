@@ -17,12 +17,11 @@ func init() {
 
 func TestVersion(t *testing.T) {
 	assert := assert.New(t)
-	a, b, c, v := Version()
-	assert.EqualValues(0, a, "currently support only non-release versions < 1.0.0")
-	assert.NotEmpty(b)
-	assert.NotEmpty(c)
-	assert.NotEmpty(v)
-	log.Printf("Testing %s", v)
+	major, minor, _, version := Version()
+	assert.EqualValues(0, major, "only 0.9.x LMDB versions are currently supported")
+	assert.EqualValues(9, minor, "only 0.9.x LMDB versions are currently supported")
+	assert.NotEmpty(version)
+	log.Printf("Testing %s", version)
 }
 
 func TestError(t *testing.T) {
@@ -100,7 +99,76 @@ func TestEnvOpen(t *testing.T) {
 	assert.NoError(err, "lock.mdb should exist in "+TEST_DB)
 }
 
-const TEST_DB = "test.db"
+func TestEnvCopy(t *testing.T) {
+	assert := assert.New(t)
+	env, err := EnvCreate()
+	if !assert.NoError(err) {
+		return
+	}
+	defer env.Close()
+
+	initDir(TEST_DB)
+	defer nukeDir(TEST_DB)
+	if !assert.NoError(env.Open(TEST_DB, DefaultFlags, 0644)) {
+		return
+	}
+
+	initDir(TEST_DB2)
+	defer nukeDir(TEST_DB2)
+	assert.NoError(env.Copy(TEST_DB2))
+	_, err = os.Stat(filepath.Join(TEST_DB2, "data.mdb"))
+	assert.NoError(err, "data.mdb should exist in "+TEST_DB2)
+	_, err = os.Stat(filepath.Join(TEST_DB2, "lock.mdb"))
+	assert.True(os.IsNotExist(err), "lock.mdb should not exist in "+TEST_DB2)
+}
+
+func TestEnvCopyWithOptions(t *testing.T) {
+	assert := assert.New(t)
+	env, err := EnvCreate()
+	if !assert.NoError(err) {
+		return
+	}
+	defer env.Close()
+
+	initDir(TEST_DB)
+	defer nukeDir(TEST_DB)
+	if !assert.NoError(env.Open(TEST_DB, DefaultFlags, 0644)) {
+		return
+	}
+
+	initDir(TEST_DB2)
+	defer nukeDir(TEST_DB2)
+	assert.NoError(env.CopyWithOptions(TEST_DB2, CompactingCopy))
+	_, err = os.Stat(filepath.Join(TEST_DB2, "data.mdb"))
+	assert.NoError(err, "data.mdb should exist in "+TEST_DB2)
+	_, err = os.Stat(filepath.Join(TEST_DB2, "lock.mdb"))
+	assert.True(os.IsNotExist(err), "lock.mdb should not exist in "+TEST_DB2)
+}
+
+func TestEnvStat(t *testing.T) {
+	assert := assert.New(t)
+	env, err := EnvCreate()
+	if !assert.NoError(err) {
+		return
+	}
+	defer env.Close()
+
+	initDir(TEST_DB)
+	defer nukeDir(TEST_DB)
+	if !assert.NoError(env.Open(TEST_DB, DefaultFlags, 0644)) {
+		return
+	}
+
+	stats, err := env.Stats()
+	assert.NoError(err)
+	assert.EqualValues(stats.PageSize(), 4096)
+	// TODO(xlab): bench the stat call
+}
+
+const (
+	TEST_DB  = "test.db"
+	TEST_DB2 = "test_copy.db"
+)
 
 func initDir(dir string) error {
 	return os.MkdirAll(dir, 0755)

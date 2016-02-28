@@ -121,3 +121,28 @@ func (e *Env) Open(path string, flags EnvFlags, mode os.FileMode) error {
 	e.m.Unlock()
 	return err
 }
+
+func (e *Env) Copy(newpath string) error {
+	e.m.RLock()
+	err := mdbError(mdb.EnvCopy(e.env, newpath))
+	e.m.RUnlock()
+	return err
+}
+
+func (e *Env) CopyWithOptions(newpath string, flags CopyFlags) error {
+	e.m.RLock()
+	err := mdbError(mdb.EnvCopy2(e.env, newpath, uint32(flags)))
+	e.m.RUnlock()
+	return err
+}
+
+func (e *Env) Stats() (Stats, error) {
+	e.m.RLock()
+	var mdbStats mdb.Stats
+	if err := mdbError(mdb.EnvStat(e.env, &mdbStats)); err != nil {
+		return nil, err
+	}
+	mdbStats.Deref()
+	e.m.RUnlock()
+	return stats{&mdbStats}, nil
+}
