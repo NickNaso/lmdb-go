@@ -76,6 +76,7 @@ TRANSLATOR:
     type: 
       - {action: replace, from: "^me_"}
       - {action: replace, from: "^ms_"}
+      - {action: replace, from: "^mv_"}
       - {action: replace, from: "_stat$", to: stats}
       - {action: replace, from: "_t$"}
     private:
