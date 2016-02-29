@@ -25,6 +25,7 @@ func (c Cursor) Get(key []byte, op CursorOp) ([]byte, error) {
 	if err := mdbError(mdb.CursorGet(c.cur, toVal(key), &val, mdb.CursorOp(op))); err != nil {
 		return nil, err
 	}
+	val.Deref()
 	v := fromVal(&val)
 	return v, nil
 }

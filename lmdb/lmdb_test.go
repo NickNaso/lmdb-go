@@ -74,6 +74,7 @@ func TestError(t *testing.T) {
 const (
 	TEST_DB  = "test.db"
 	TEST_DB2 = "test_copy.db"
+	TEST_DBI = "test_dbi"
 )
 
 func initDir(dir string) error {

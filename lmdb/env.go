@@ -203,8 +203,6 @@ func (e Env) DbiClose(dbi Dbi) {
 	e.m.Unlock()
 }
 
-//func(msg string, ctx unsafe.Pointer) int32
-
 type MsgFunc func(msg string, ctx unsafe.Pointer) (ok bool)
 
 func (e Env) ReaderList(msg MsgFunc, ctx unsafe.Pointer) error {
@@ -219,8 +217,6 @@ func (e Env) ReaderList(msg MsgFunc, ctx unsafe.Pointer) error {
 	e.m.RUnlock()
 	return err
 }
-
-//ReaderCheck(env *Env, dead *int32) int32
 
 func (e Env) ReaderCheck() (int32, error) {
 	e.m.RLock()

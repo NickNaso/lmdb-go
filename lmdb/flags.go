@@ -46,6 +46,8 @@ const (
 	DbiIntegerDup DbiFlags = mdb.Integerdup
 	DbiReverseDup DbiFlags = mdb.Reversedup
 	DbiCreate     DbiFlags = mdb.Create
+
+	DefaultDbiFlags DbiFlags = 0
 )
 
 type WriteFlags uint32
@@ -58,6 +60,8 @@ const (
 	Append      WriteFlags = mdb.Append
 	AppendDup   WriteFlags = mdb.Appenddup
 	Multiple    WriteFlags = mdb.Multiple
+
+	DefaultWriteFlags WriteFlags = 0
 )
 
 func (x EnvFlags) Has(flags EnvFlags) bool {

@@ -104,6 +104,7 @@ func (tx Txn) Get(dbi Dbi, key []byte) ([]byte, error) {
 	if err := mdbError(mdb.Get(tx.txn, mdb.Dbi(dbi), toVal(key), &val)); err != nil {
 		return nil, err
 	}
+	val.Deref()
 	v := fromVal(&val)
 	return v, nil
 }
