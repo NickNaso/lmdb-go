@@ -2,8 +2,6 @@ package lmdb
 
 import (
 	"errors"
-	"os"
-	"sync"
 
 	"github.com/zenhotels/lmdb-go/mdb"
 )
@@ -90,59 +88,3 @@ var (
 	ErrValueSize       = errors.New(strError(mdb.ErrValueSize))
 	ErrBadDbi          = errors.New(strError(mdb.ErrBadDbi))
 )
-
-type Env struct {
-	m   *sync.RWMutex
-	env *mdb.Env
-}
-
-func EnvCreate() (*Env, error) {
-	var env Env
-	if err := mdbError(mdb.EnvCreate(&env.env)); err != nil {
-		return nil, err
-	}
-	env.m = new(sync.RWMutex)
-	return &env, nil
-}
-
-func (e *Env) Close() {
-	e.m.Lock()
-	if e.env != nil {
-		mdb.EnvClose(e.env)
-		e.env = nil
-	}
-	e.m.Unlock()
-}
-
-func (e *Env) Open(path string, flags EnvFlags, mode os.FileMode) error {
-	e.m.Lock()
-	// WARN: the NoTLS should be always enabled to prevent the driver from using the thread-tied memory.
-	err := mdbError(mdb.EnvOpen(e.env, path, uint32(NoTLS|flags), mdb.Mode(mode)))
-	e.m.Unlock()
-	return err
-}
-
-func (e *Env) Copy(newpath string) error {
-	e.m.RLock()
-	err := mdbError(mdb.EnvCopy(e.env, newpath))
-	e.m.RUnlock()
-	return err
-}
-
-func (e *Env) CopyWithOptions(newpath string, flags CopyFlags) error {
-	e.m.RLock()
-	err := mdbError(mdb.EnvCopy2(e.env, newpath, uint32(flags)))
-	e.m.RUnlock()
-	return err
-}
-
-func (e *Env) Stats() (Stats, error) {
-	e.m.RLock()
-	var mdbStats mdb.Stats
-	if err := mdbError(mdb.EnvStat(e.env, &mdbStats)); err != nil {
-		return nil, err
-	}
-	mdbStats.Deref()
-	e.m.RUnlock()
-	return stats{&mdbStats}, nil
-}

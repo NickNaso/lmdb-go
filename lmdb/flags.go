@@ -17,11 +17,89 @@ const (
 	NoReadahead EnvFlags = mdb.Nordahead
 	NoMemInit   EnvFlags = mdb.Nomeminit
 
-	DefaultFlags EnvFlags = NoTLS
+	DefaultEnvFlags EnvFlags = NoTLS
 )
 
-type CopyFlags uint32
+type CpFlags uint32
 
 const (
-	CompactingCopy CopyFlags = mdb.CpCompact
+	CpCompacting CpFlags = mdb.CpCompact
+)
+
+type TxnFlags uint32
+
+const (
+	TxnReadOnly   TxnFlags = mdb.Rdonly
+	TxnNoSync     TxnFlags = mdb.Nosync
+	TxnNoMetaSync TxnFlags = mdb.Nometasync
+
+	DefaultTxnFlags TxnFlags = 0
+)
+
+type DbiFlags uint32
+
+const (
+	DbiReverseKey DbiFlags = mdb.Reversekey
+	DbiDupSort    DbiFlags = mdb.Dupsort
+	DbiIntegerKey DbiFlags = mdb.Integerkey
+	DbiDupFixed   DbiFlags = mdb.Dupfixed
+	DbiIntegerDup DbiFlags = mdb.Integerdup
+	DbiReverseDup DbiFlags = mdb.Reversedup
+	DbiCreate     DbiFlags = mdb.Create
+)
+
+type WriteFlags uint32
+
+const (
+	NoOverwrite WriteFlags = mdb.Nooverwrite
+	NoDupData   WriteFlags = mdb.Nodupdata
+	Current     WriteFlags = mdb.Current
+	Reserve     WriteFlags = mdb.Reserve
+	Append      WriteFlags = mdb.Append
+	AppendDup   WriteFlags = mdb.Appenddup
+	Multiple    WriteFlags = mdb.Multiple
+)
+
+func (x EnvFlags) Has(flags EnvFlags) bool {
+	return x&flags == flags
+}
+
+func (x CpFlags) Has(flags CpFlags) bool {
+	return x&flags == flags
+}
+
+func (x TxnFlags) Has(flags TxnFlags) bool {
+	return x&flags == flags
+}
+
+func (x DbiFlags) Has(flags DbiFlags) bool {
+	return x&flags == flags
+}
+
+func (x WriteFlags) Has(flags WriteFlags) bool {
+	return x&flags == flags
+}
+
+type CursorOp uint32
+
+const (
+	OpFirst CursorOp = 0
+	OpFirstDup
+	OpGetBoth
+	OpGetBothRange
+	OpGetCurrent
+	OpGetMultiple
+	OpLast
+	OpLastDup
+	OpNext
+	OpNextDup
+	OpNextMultiple
+	OpNextNoDup
+	OpPrev
+	OpPrevDup
+	OpPrevNoDup
+	OpSet
+	OpSetKey
+	OpSetRange
+	OpPrevMultiple
 )

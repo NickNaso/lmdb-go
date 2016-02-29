@@ -51,3 +51,26 @@ type EnvInfo interface {
 	MaxReaders() uint32
 	NumReaders() uint32
 }
+
+type envInfo struct {
+	*mdb.Envinfo
+}
+
+func (e envInfo) MapAddr() unsafe.Pointer {
+	return e.Envinfo.Mapaddr
+}
+func (e envInfo) MapSize() uint {
+	return uint(e.Envinfo.Mapsize)
+}
+func (e envInfo) LastPageNo() uint {
+	return uint(e.Envinfo.LastPgno)
+}
+func (e envInfo) LastTxnID() uint {
+	return uint(e.Envinfo.LastTxnid)
+}
+func (e envInfo) MaxReaders() uint32 {
+	return e.Envinfo.Maxreaders
+}
+func (e envInfo) NumReaders() uint32 {
+	return e.Envinfo.Numreaders
+}
