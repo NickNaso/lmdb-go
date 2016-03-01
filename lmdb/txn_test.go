@@ -11,7 +11,6 @@ import (
 func TestEmptyTxn(t *testing.T) {
 	assert := assert.New(t)
 	env := openEnv()
-	defer closeEnv(env)
 
 	txn, err := env.BeginTxn(nil, DefaultTxnFlags)
 	assert.NoError(err)
@@ -26,10 +25,18 @@ func TestEmptyTxn(t *testing.T) {
 	path2, err := txn.Env().GetPath()
 	assert.NoError(err)
 	assert.Equal(path1, path2)
+
+	txn2, err2 := env.BeginTxn(&txn, DefaultTxnFlags)
+	assert.NoError(err2)
+	txn2.Abort()
 	txn.Abort()
+
+	closeEnv(env)
+	txn, err = env.BeginTxn(nil, DefaultTxnFlags)
+	assert.Error(err)
 }
 
-func TestDbiFlags(t *testing.T) {
+func TestDbiOps(t *testing.T) {
 	assert := assert.New(t)
 	env := openEnv()
 	defer closeEnv(env)
@@ -44,6 +51,10 @@ func TestDbiFlags(t *testing.T) {
 	assert.NoError(err)
 	// DbiCreate doesn't get into Dbi flag usually
 	assert.EqualValues(DbiReverseKey, flags)
+
+	txn.Abort()
+	_, err = txn.DbiOpen(TEST_DBI, DbiCreate|DbiReverseKey)
+	assert.Error(err)
 }
 
 func TestDbiDeleteDrop(t *testing.T) {
@@ -138,6 +149,9 @@ func TestTxnDbiPut(t *testing.T) {
 	assert.NoError(txn.Put(dbi, []byte("hello"), []byte("world"), DefaultWriteFlags))
 	assert.NoError(txn.Commit())
 
+	env.Sync(false)
+	env.Sync(true)
+
 	txn, err = env.BeginTxn(nil, DefaultTxnFlags)
 	assert.NoError(err)
 	assert.EqualValues(2, txn.ID())
@@ -164,7 +178,6 @@ func TestTxnDbiGet(t *testing.T) {
 	if !assert.NoError(err) {
 		return
 	}
-	defer txn.Abort()
 	dbi, err = txn.DbiOpen(TEST_DBI, DefaultDbiFlags)
 	assert.NoError(err)
 	result, err := txn.Get(dbi, key)
@@ -172,6 +185,10 @@ func TestTxnDbiGet(t *testing.T) {
 	if assert.NotNil(result) {
 		assert.Equal(val, result)
 	}
+
+	txn.Abort()
+	_, err = txn.Get(dbi, nil)
+	assert.Error(err)
 }
 
 func TestDbiStat(t *testing.T) {

@@ -72,6 +72,23 @@ func TestError(t *testing.T) {
 		mdbError(mdb.ErrBadDbi).Error())
 }
 
+func TestFlags(t *testing.T) {
+	assert := assert.New(t)
+	assert.True((ReadOnly | NoSync | NoMetaSync).Has(NoSync | NoMetaSync))
+	assert.True(CpCompacting.Has(CpCompacting))
+	assert.True((TxnReadOnly | TxnNoSync | TxnNoMetaSync).Has(TxnNoSync | TxnNoMetaSync))
+	assert.True((DbiCreate | DbiDupSort | DbiIntegerDup).Has(DbiDupSort | DbiIntegerDup))
+	assert.True((AppendDup | NoOverwrite | NoDupData).Has(NoOverwrite | NoDupData))
+}
+
+func TestToString(t *testing.T) {
+	assert := assert.New(t)
+	payload := []byte("hello\x00")
+	assert.Equal(string(payload[:5]), toString(payload, 6))
+	assert.Empty(toString(payload, 1))
+	assert.Empty(toString(nil, 0))
+}
+
 const (
 	TEST_DB  = "test.db"
 	TEST_DB2 = "test_copy.db"
@@ -89,6 +106,11 @@ func nukeDir(dir string) error {
 func openEnv() Env {
 	env, err := EnvCreate()
 	if err != nil {
+		log.Fatalln(err)
+	}
+	if err := env.SetAssertFunc(func(msg string) {
+		log.Println("[ASSERT]", msg)
+	}); err != nil {
 		log.Fatalln(err)
 	}
 	env.SetMaxDBs(10)

@@ -59,22 +59,24 @@ func (e Env) CopyWithOptions(newpath string, flags CpFlags) error {
 func (e Env) Stat() (Stats, error) {
 	e.m.RLock()
 	var mdbStats mdb.Stats
-	if err := mdbError(mdb.EnvStat(e.env, &mdbStats)); err != nil {
+	err := mdbError(mdb.EnvStat(e.env, &mdbStats))
+	e.m.RUnlock()
+	if err != nil {
 		return nil, err
 	}
 	mdbStats.Deref()
-	e.m.RUnlock()
 	return stats{&mdbStats}, nil
 }
 
 func (e Env) Info() (EnvInfo, error) {
 	e.m.RLock()
 	var mdbEnvInfo mdb.Envinfo
-	if err := mdbError(mdb.EnvInfo(e.env, &mdbEnvInfo)); err != nil {
+	err := mdbError(mdb.EnvInfo(e.env, &mdbEnvInfo))
+	e.m.RUnlock()
+	if err != nil {
 		return nil, err
 	}
 	mdbEnvInfo.Deref()
-	e.m.RUnlock()
 	return envInfo{&mdbEnvInfo}, nil
 }
 
@@ -107,15 +109,12 @@ func (e Env) GetFlags() (EnvFlags, error) {
 	return EnvFlags(flags), err
 }
 
-func (e Env) GetPath() (string, error) {
+func (e Env) GetPath() (path string, err error) {
 	e.m.RLock()
-	path := make([]string, 1)
-	err := mdbError(mdb.EnvGetPath(e.env, path))
+	paths := make([]string, 1)
+	err = mdbError(mdb.EnvGetPath(e.env, paths))
 	e.m.RUnlock()
-	if err != nil {
-		return "", err
-	}
-	return path[0], nil
+	return paths[0], err
 }
 
 func (e Env) SetMapSize(size uint) error {
@@ -203,15 +202,15 @@ func (e Env) DbiClose(dbi Dbi) {
 	e.m.Unlock()
 }
 
-type MsgFunc func(msg string, ctx unsafe.Pointer) (ok bool)
+type MsgFunc func(msg string, ctx unsafe.Pointer) error
 
 func (e Env) ReaderList(msg MsgFunc, ctx unsafe.Pointer) error {
 	e.m.RLock()
 	msgFunc := func(text string, ctx unsafe.Pointer) int32 {
-		if ok := msg(text, ctx); ok {
-			return 0
+		if err := msg(text, ctx); err != nil {
+			return -1
 		}
-		return -1
+		return 0
 	}
 	err := mdbError(mdb.ReaderList(e.env, msgFunc, ctx))
 	e.m.RUnlock()

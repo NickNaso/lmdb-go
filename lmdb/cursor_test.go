@@ -18,7 +18,6 @@ func TestCursorOpen(t *testing.T) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer txn.Abort()
 	dbi, err := txn.DbiOpen(TEST_DBI, DefaultDbiFlags)
 	if err != nil {
 		log.Fatalln(err)
@@ -26,11 +25,16 @@ func TestCursorOpen(t *testing.T) {
 
 	cur, err := txn.CursorOpen(dbi)
 	if !assert.NoError(err) {
+		txn.Abort()
 		return
 	}
-	defer cur.Close()
 	assert.Equal(txn.txn, cur.Txn().txn)
 	assert.EqualValues(dbi, cur.Dbi())
+	cur.Close()
+
+	txn.Abort()
+	_, err = txn.CursorOpen(dbi)
+	assert.Error(err)
 }
 
 func TestCursorOps(t *testing.T) {
@@ -54,6 +58,8 @@ func TestCursorOps(t *testing.T) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	_, err = cur.Count()
+	assert.Error(err, "cursor should be not in Dup environment")
 	assert.NoError(txn.CursorRenew(cur))
 	defer cur.Close()
 
@@ -77,7 +83,7 @@ func TestCursorOps(t *testing.T) {
 	}
 }
 
-func TestCursorDel(t *testing.T) {
+func TestCursorDelPut(t *testing.T) {
 	assert := assert.New(t)
 	env := openEnv()
 	defer closeEnv(env)
@@ -114,4 +120,11 @@ func TestCursorDel(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal([]byte("key549"), k)
 	assert.Equal([]byte("value549"), v)
+
+	assert.NoError(cur.Put([]byte("key0"), []byte("value0"), DefaultWriteFlags))
+
+	k, v, err = cur.Get(nil, OpFirst)
+	assert.NoError(err)
+	assert.Equal([]byte("key0"), k)
+	assert.Equal([]byte("value0"), v)
 }

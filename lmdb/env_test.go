@@ -1,9 +1,11 @@
 package lmdb
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,6 +35,40 @@ func TestEnvOpen(t *testing.T) {
 	assert.NoError(err, "data.mdb should exist in "+TEST_DB)
 	_, err = os.Stat(filepath.Join(TEST_DB, "lock.mdb"))
 	assert.NoError(err, "lock.mdb should exist in "+TEST_DB)
+}
+
+func TestEnvReaderList(t *testing.T) {
+	assert := assert.New(t)
+	env := openEnv()
+	defer closeEnv(env)
+
+	initDir(TEST_DB)
+	defer nukeDir(TEST_DB)
+
+	populateDbi(env, TEST_DBI, 1000)
+
+	v := 5
+	assert.NoError(env.ReaderList(func(msg string, ctx unsafe.Pointer) error {
+		assert.NotEmpty(msg)
+		assert.EqualValues(v, *(*int)(ctx))
+		return nil
+	}, unsafe.Pointer(&v)))
+
+	tx, err := env.BeginTxn(nil, TxnReadOnly)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer tx.Abort()
+
+	assert.NoError(env.ReaderList(func(msg string, ctx unsafe.Pointer) error {
+		assert.NotEmpty(msg)
+		assert.EqualValues(v, *(*int)(ctx))
+		return nil
+	}, unsafe.Pointer(&v)))
+
+	dead, err := env.ReaderCheck()
+	assert.EqualValues(0, dead)
+	assert.NoError(err)
 }
 
 func TestEnvCopy(t *testing.T) {
@@ -95,8 +131,8 @@ func TestEnvStat(t *testing.T) {
 		return
 	}
 
-	stats, err := env.Stat()
 	// TODO(xlab): bench the stat call
+	stats, err := env.Stat()
 
 	assert.NoError(err)
 	assert.EqualValues(0x1000, stats.PageSize())
@@ -105,6 +141,10 @@ func TestEnvStat(t *testing.T) {
 	assert.EqualValues(0, stats.Entries())
 	assert.EqualValues(0, stats.LeafPages())
 	assert.EqualValues(0, stats.OverflowPages())
+
+	env.Close()
+	_, err = env.Stat()
+	assert.Error(err)
 }
 
 func TestEnvInfo(t *testing.T) {
@@ -121,8 +161,8 @@ func TestEnvInfo(t *testing.T) {
 		return
 	}
 
-	info, err := env.Info()
 	// TODO(xlab): bench the info call
+	info, err := env.Info()
 
 	assert.NoError(err)
 	assert.True(info.MapAddr() == nil)
@@ -131,6 +171,14 @@ func TestEnvInfo(t *testing.T) {
 	assert.EqualValues(0, info.LastTxnID())
 	assert.EqualValues(126, info.MaxReaders())
 	assert.EqualValues(0, info.NumReaders())
+
+	maxReaders, err := env.GetMaxReaders()
+	assert.NoError(err)
+	assert.EqualValues(126, maxReaders)
+
+	env.Close()
+	_, err = env.Info()
+	assert.Error(err)
 }
 
 func TestEnvFlagsSetGet(t *testing.T) {
@@ -172,6 +220,26 @@ func TestEnvFlagsSetGet(t *testing.T) {
 	assert.True(flags.Has(NoMetaSync))
 	assert.False(flags.Has(NoSync))
 	assert.True(flags.Has(NoTLS))
+}
+
+func TestEnvCtxSetGet(t *testing.T) {
+	assert := assert.New(t)
+	env, err := EnvCreate()
+	if !assert.NoError(err) {
+		return
+	}
+	defer env.Close()
+
+	initDir(TEST_DB)
+	defer nukeDir(TEST_DB)
+	if !assert.NoError(env.Open(TEST_DB, DefaultEnvFlags, 0644)) {
+		return
+	}
+
+	ctx := 5
+	assert.NoError(env.SetUserContext(unsafe.Pointer(&ctx)))
+	v := env.GetUserContext()
+	assert.Equal(ctx, *(*int)(v))
 }
 
 func TestEnvMisc(t *testing.T) {
