@@ -87,7 +87,7 @@ func (x WriteFlags) Has(flags WriteFlags) bool {
 type CursorOp uint32
 
 const (
-	OpFirst CursorOp = 0
+	OpFirst CursorOp = iota
 	OpFirstDup
 	OpGetBoth
 	OpGetBothRange

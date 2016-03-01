@@ -20,14 +20,17 @@ func (c Cursor) Dbi() Dbi {
 	return Dbi(mdb.CursorDbi(c.cur))
 }
 
-func (c Cursor) Get(key []byte, op CursorOp) ([]byte, error) {
-	var val mdb.Val
-	if err := mdbError(mdb.CursorGet(c.cur, toVal(key), &val, mdb.CursorOp(op))); err != nil {
-		return nil, err
+func (c Cursor) Get(key []byte, op CursorOp) (newkey, value []byte, err error) {
+	kval := toVal(key)
+	var vval mdb.Val
+	if err = mdbError(mdb.CursorGet(c.cur, kval, &vval, mdb.CursorOp(op))); err != nil {
+		return
 	}
-	val.Deref()
-	v := fromVal(&val)
-	return v, nil
+	vval.Deref()
+	kval.Deref()
+	value = fromVal(&vval)
+	newkey = fromVal(kval)
+	return
 }
 
 func (c Cursor) Put(key, value []byte, flags WriteFlags) error {

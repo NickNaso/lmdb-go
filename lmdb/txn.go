@@ -75,6 +75,8 @@ type CmpFunc func(a, b []byte) int
 func (tx Txn) SetCompareFunc(dbi Dbi, cmp CmpFunc) error {
 	return mdbError(mdb.SetCompare(tx.txn, mdb.Dbi(dbi),
 		func(a, b *mdb.Val) int32 {
+			a.Deref()
+			b.Deref()
 			return int32(cmp(fromVal(a), fromVal(b)))
 		}))
 }
@@ -82,6 +84,8 @@ func (tx Txn) SetCompareFunc(dbi Dbi, cmp CmpFunc) error {
 func (tx Txn) SetDupsortFunc(dbi Dbi, cmp CmpFunc) error {
 	return mdbError(mdb.SetDupsort(tx.txn, mdb.Dbi(dbi),
 		func(a, b *mdb.Val) int32 {
+			a.Deref()
+			b.Deref()
 			return int32(cmp(fromVal(a), fromVal(b)))
 		}))
 }
@@ -91,6 +95,7 @@ type RelFunc func(item []byte, oldptr, newptr, relctx unsafe.Pointer)
 func (tx Txn) SetRelFunc(dbi Dbi, rel RelFunc) error {
 	return mdbError(mdb.SetRelfunc(tx.txn, mdb.Dbi(dbi),
 		func(item *mdb.Val, oldptr unsafe.Pointer, newptr unsafe.Pointer, relctx unsafe.Pointer) {
+			item.Deref()
 			rel(fromVal(item), oldptr, newptr, relctx)
 		}))
 }

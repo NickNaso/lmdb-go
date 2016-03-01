@@ -95,16 +95,16 @@ func TestEnvStat(t *testing.T) {
 		return
 	}
 
-	stat, err := env.Stat()
+	stats, err := env.Stat()
 	// TODO(xlab): bench the stat call
 
 	assert.NoError(err)
-	assert.EqualValues(0x1000, stat.PageSize())
-	assert.EqualValues(0, stat.Depth())
-	assert.EqualValues(0, stat.BranchPages())
-	assert.EqualValues(0, stat.Entries())
-	assert.EqualValues(0, stat.LeafPages())
-	assert.EqualValues(0, stat.OverflowPages())
+	assert.EqualValues(0x1000, stats.PageSize())
+	assert.EqualValues(0, stats.Depth())
+	assert.EqualValues(0, stats.BranchPages())
+	assert.EqualValues(0, stats.Entries())
+	assert.EqualValues(0, stats.LeafPages())
+	assert.EqualValues(0, stats.OverflowPages())
 }
 
 func TestEnvInfo(t *testing.T) {

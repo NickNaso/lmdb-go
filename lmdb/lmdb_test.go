@@ -1,6 +1,7 @@
 package lmdb
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"syscall"
@@ -83,4 +84,43 @@ func initDir(dir string) error {
 
 func nukeDir(dir string) error {
 	return os.RemoveAll(dir)
+}
+
+func openEnv() Env {
+	env, err := EnvCreate()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	env.SetMaxDBs(10)
+	initDir(TEST_DB)
+	if err := env.Open(TEST_DB, DefaultEnvFlags, 0644); err != nil {
+		log.Fatalln(err)
+	}
+	return env
+}
+
+func closeEnv(env Env) {
+	env.Close()
+	nukeDir(TEST_DB)
+}
+
+func populateDbi(env Env, name string, n int) {
+	tx, err := env.BeginTxn(nil, DefaultTxnFlags)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	dbi, err := tx.DbiOpen(name, DbiCreate)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	for i := 0; i < n; i++ {
+		key := []byte(fmt.Sprintf("key%d", i))
+		value := []byte(fmt.Sprintf("value%d", i))
+		if err := tx.Put(dbi, key, value, DefaultWriteFlags); err != nil {
+			log.Fatalln(err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		log.Fatalln(err)
+	}
 }
