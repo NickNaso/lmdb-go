@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zenhotels/lmdb-go/lmdb"
+	"github.com/boltdb/bolt"
 )
 
-func BenchmarkGetSmall_LMDB(b *testing.B) {
+func BenchmarkGetSmall_BoltDB(b *testing.B) {
 	b.SetParallelism(1)
 
 	take++
@@ -19,10 +19,10 @@ func BenchmarkGetSmall_LMDB(b *testing.B) {
 	}()
 
 	log.Printf("bench get SMALL (8KB), take %d (n=%d)\n", take, b.N)
-	benchGet_LMDB(b, 20*GB, SMALL_VAL)
+	benchGet_BoltDB(b, 20*GB, SMALL_VAL)
 }
 
-func BenchmarkGetLarge_LMDB(b *testing.B) {
+func BenchmarkGetLarge_BoltDB(b *testing.B) {
 	b.SetParallelism(1)
 
 	take++
@@ -32,19 +32,19 @@ func BenchmarkGetLarge_LMDB(b *testing.B) {
 	}()
 
 	log.Printf("bench get LARGE (8MB), take %d (n=%d)", take, b.N)
-	benchGet_LMDB(b, 20*GB, LARGE_VAL)
+	benchGet_BoltDB(b, 20*GB, LARGE_VAL)
 }
 
-func benchGet_LMDB(b *testing.B, size uint, val []byte) {
-	env := openEnv(fmt.Sprintf("W%d", len(val)/1024)+BENCH_DB, lmdb.ReadOnly)
-	defer env.Close()
+func benchGet_BoltDB(b *testing.B, size uint, val []byte) {
+	db, err := bolt.Open(fmt.Sprintf("W%d", len(val)/1024)+BENCH_DB, 0644, &bolt.Options{
+		ReadOnly: true,
+	})
+	checkErr(err)
+	defer db.Close()
 
-	checkErr(env.SetMapSize(size))
-	txn, err := env.BeginTxn(nil, lmdb.TxnReadOnly)
+	txn, err := db.Begin(false)
 	checkErr(err)
-	defer txn.Abort()
-	dbi, err := txn.DbiOpen(BENCH_DBI, lmdb.DefaultDbiFlags)
-	checkErr(err)
+	bucket := txn.Bucket(BENCH_DBI)
 
 	b.SetBytes(int64(len(val)))
 	b.ResetTimer()
@@ -55,13 +55,9 @@ func benchGet_LMDB(b *testing.B, size uint, val []byte) {
 	for i := 0; i < b.N; i++ {
 		// key := useKey(src.Intn(count + count/20))
 		key := randKey()
-		v, err := txn.Get(dbi, key)
-		if err != nil {
-			if err == lmdb.ErrNotFound {
-				missed++
-			} else {
-				checkErr(err)
-			}
+		v := bucket.Get(key)
+		if v == nil {
+			missed++
 		} else {
 			found++
 			if len(v) != len(val) {
@@ -69,7 +65,8 @@ func benchGet_LMDB(b *testing.B, size uint, val []byte) {
 			}
 		}
 	}
+	txn.Rollback()
 	log.Println("missed:", missed, "found:", found)
-	list(env)
+	list(db)
 	mem()
 }

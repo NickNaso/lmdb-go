@@ -36,7 +36,7 @@ func BenchmarkPutSmall_LMDB(b *testing.B) {
 	}()
 
 	log.Printf("bench put SMALL (8KB), take %d (n=%d)\n", take, b.N)
-	benchPut_LMDB(b, 10*GB, SMALL_VAL)
+	benchPut_LMDB(b, 20*GB, SMALL_VAL)
 }
 
 func BenchmarkPutLarge_LMDB(b *testing.B) {
@@ -55,7 +55,7 @@ func BenchmarkPutLarge_LMDB(b *testing.B) {
 func benchPut_LMDB(b *testing.B, size uint, val []byte) {
 	env := openEnv(BENCH_DB, lmdb.DefaultEnvFlags)
 	// env := openEnv(fmt.Sprintf("W%d", len(val)/1024)+BENCH_DB, lmdb.DefaultEnvFlags)
-	// defer cleanDir(BENCH_DB)
+	defer cleanDir(BENCH_DB)
 	defer env.Close()
 
 	checkErr(env.SetMapSize(size))
@@ -79,6 +79,7 @@ func benchPut_LMDB(b *testing.B, size uint, val []byte) {
 		}
 
 		// key := decKey()
+		// key := sortedKey()
 		key := randKey()
 		checkErr(txn.Put(dbi, key, val, lmdb.DefaultWriteFlags))
 
@@ -109,7 +110,7 @@ func checkErr(err error) {
 
 var clock int
 
-var src = rand.New(rand.NewSource(time.Now().UnixNano()))
+var src = rand.New(rand.NewSource(1))
 
 // sortedKey returns key of (9 bytes of clock + 7 (or 14 chars) random bytes).
 func sortedKey() []byte {
