@@ -84,7 +84,7 @@ func (x WriteFlags) Has(flags WriteFlags) bool {
 	return x&flags == flags
 }
 
-type CursorOp uint32
+type CursorOp int32
 
 const (
 	OpFirst CursorOp = iota

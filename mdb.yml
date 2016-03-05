@@ -14,8 +14,8 @@ PARSER:
 
 TRANSLATOR: 
   ConstRules: 
-    decl: expand
-    enum: evalFull
+    defines: expand
+    enum: eval
   PtrTips:
     function:
       - {target: "mdb_version$", self: arr, tips: [ref,ref,ref]}
