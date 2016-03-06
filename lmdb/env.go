@@ -36,6 +36,7 @@ func (e *Env) Close() {
 
 func (e Env) Open(path string, flags EnvFlags, mode os.FileMode) error {
 	e.m.Lock()
+	path = path + "\x00" // get a null-terminated C-string
 	// WARN: the NoTLS should be always enabled to prevent the driver from using the thread-tied memory.
 	err := mdbError(mdb.EnvOpen(e.env, path, uint32(NoTLS|flags), mdb.Mode(mode)))
 	e.m.Unlock()
@@ -44,6 +45,7 @@ func (e Env) Open(path string, flags EnvFlags, mode os.FileMode) error {
 
 func (e Env) Copy(newpath string) error {
 	e.m.RLock()
+	newpath = newpath + "\x00" // get a null-terminated C-string
 	err := mdbError(mdb.EnvCopy(e.env, newpath))
 	e.m.RUnlock()
 	return err
@@ -51,6 +53,7 @@ func (e Env) Copy(newpath string) error {
 
 func (e Env) CopyWithOptions(newpath string, flags CpFlags) error {
 	e.m.RLock()
+	newpath = newpath + "\x00" // get a null-terminated C-string
 	err := mdbError(mdb.EnvCopy2(e.env, newpath, uint32(flags)))
 	e.m.RUnlock()
 	return err

@@ -42,6 +42,7 @@ func (tx Txn) Renew() error {
 
 func (tx Txn) DbiOpen(name string, flags DbiFlags) (Dbi, error) {
 	var mdbDbi mdb.Dbi
+	name = name + "\x00" // get a null-terminated C-string
 	if err := mdbError(mdb.DbiOpen(tx.txn, name, uint32(flags), &mdbDbi)); err != nil {
 		return 0, err
 	}
