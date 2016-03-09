@@ -30,6 +30,10 @@ func TestEmptyTxn(t *testing.T) {
 	assert.NoError(err2)
 	txn2.Abort()
 	txn.Abort()
+
+	closeEnv(env)
+	txn, err = env.BeginTxn(nil, DefaultTxnFlags)
+	assert.Error(err)
 }
 
 func TestDbiOps(t *testing.T) {
