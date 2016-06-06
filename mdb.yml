@@ -9,6 +9,7 @@ GENERATOR:
   Includes: [lmdb.h]
   FlagGroups:
     - {name: "CFLAGS", traits: ["linux"], flags: [-DMDB_USE_SYSV_SEM=1]}
+    - {name: "LDFLAGS", traits: ["windows"], flags: [-lntdll]}
 
 PARSER: 
   IncludePaths: [/usr/include]
