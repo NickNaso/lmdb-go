@@ -21,9 +21,6 @@ type Mode uint16
 // Size type as declared in mdb/lmdb.h:186
 type Size uint
 
-// Filehandle type as declared in mdb/lmdb.h:196
-type Filehandle int32
-
 // Env as declared in mdb/lmdb.h:239
 type Env C.MDB_env
 
