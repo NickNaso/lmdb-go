@@ -1,6 +1,6 @@
-package mdb
-
 // +build windows
+
+package mdb
 
 // #include "lmdb.h"
 import "C"
