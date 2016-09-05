@@ -1,13 +1,20 @@
 package lmdb
 
-import "github.com/zenhotels/lmdb-go/mdb"
+import (
+	"errors"
+
+	"github.com/zenhotels/lmdb-go/mdb"
+)
 
 type Cursor struct {
 	cur *mdb.Cursor
+
+	envClosed <-chan struct{}
 }
 
 func (c Cursor) Close() {
 	mdb.CursorClose(c.cur)
+	c.cur = nil
 }
 
 func (c Cursor) Txn() Txn {
@@ -23,8 +30,14 @@ func (c Cursor) Dbi() Dbi {
 func (c Cursor) Get(key []byte, op CursorOp) (newkey, value []byte, err error) {
 	kval := toVal(key)
 	var vval mdb.Val
-	if err = mdbError(mdb.CursorGet(c.cur, kval, &vval, mdb.CursorOp(op))); err != nil {
+	select {
+	case <-c.envClosed:
+		err = errors.New("lmdb: env closed")
 		return
+	default:
+		if err = mdbError(mdb.CursorGet(c.cur, kval, &vval, mdb.CursorOp(op))); err != nil {
+			return
+		}
 	}
 	vval.Deref()
 	kval.Deref()

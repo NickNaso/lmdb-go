@@ -9,13 +9,15 @@ import (
 )
 
 type Env struct {
-	m   *sync.RWMutex
-	env *mdb.Env
+	m      *sync.RWMutex
+	env    *mdb.Env
+	closed chan struct{}
 }
 
 func EnvCreate() (Env, error) {
 	env := Env{
-		m: new(sync.RWMutex),
+		m:      new(sync.RWMutex),
+		closed: make(chan struct{}),
 	}
 	var mdbEnv *mdb.Env
 	if err := mdbError(mdb.EnvCreate(&mdbEnv)); err != nil {
@@ -28,6 +30,7 @@ func EnvCreate() (Env, error) {
 func (e *Env) Close() {
 	e.m.Lock()
 	if e.env != nil {
+		close(e.closed)
 		mdb.EnvClose(e.env)
 		e.env = nil
 	}
@@ -36,25 +39,22 @@ func (e *Env) Close() {
 
 func (e Env) Open(path string, flags EnvFlags, mode os.FileMode) error {
 	e.m.Lock()
-	path = path + "\x00" // get a null-terminated C-string
 	// WARN: the NoTLS should be always enabled to prevent the driver from using the thread-tied memory.
-	err := mdbError(mdb.EnvOpen(e.env, path, uint32(NoTLS|flags), mdb.Mode(mode)))
+	err := mdbError(mdb.EnvOpen(e.env, path+"\x00", uint32(NoTLS|flags), mdb.Mode(mode)))
 	e.m.Unlock()
 	return err
 }
 
 func (e Env) Copy(newpath string) error {
 	e.m.RLock()
-	newpath = newpath + "\x00" // get a null-terminated C-string
-	err := mdbError(mdb.EnvCopy(e.env, newpath))
+	err := mdbError(mdb.EnvCopy(e.env, newpath+"\x00"))
 	e.m.RUnlock()
 	return err
 }
 
 func (e Env) CopyWithOptions(newpath string, flags CpFlags) error {
 	e.m.RLock()
-	newpath = newpath + "\x00" // get a null-terminated C-string
-	err := mdbError(mdb.EnvCopy2(e.env, newpath, uint32(flags)))
+	err := mdbError(mdb.EnvCopy2(e.env, newpath+"\x00", uint32(flags)))
 	e.m.RUnlock()
 	return err
 }
@@ -192,6 +192,7 @@ func (e Env) BeginTxn(parent *Txn, flags TxnFlags) (txn Txn, err error) {
 	} else {
 		err = mdbError(mdb.TxnBegin(e.env, nil, uint32(flags), &txn.txn))
 	}
+	txn.envClosed = e.closed
 	e.m.Unlock()
 	if err != nil {
 		txn.txn = nil

@@ -10,7 +10,8 @@ import (
 type Dbi uint32
 
 type Txn struct {
-	txn *mdb.Txn
+	txn       *mdb.Txn
+	envClosed <-chan struct{}
 }
 
 func (tx Txn) Env() Env {
@@ -141,7 +142,8 @@ func (tx Txn) CursorOpen(dbi Dbi) (Cursor, error) {
 		return Cursor{}, err
 	}
 	cur := Cursor{
-		cur: mdbCursor,
+		cur:       mdbCursor,
+		envClosed: tx.envClosed,
 	}
 	return cur, nil
 }
